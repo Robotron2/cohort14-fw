@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import TodoABI from "../contract/Todo.json";
+import type { ITodo } from "../components/Todo";
 
 const contractAddress = "PASTE_YOUR_DEPLOYED_CONTRACT_ADDRESS";
 const enableBlockchainIntegration = false;
@@ -120,3 +121,40 @@ export const useTodo = () => {
     deleteTodo,
   };
 };
+
+
+
+
+
+
+const useHooks = () => {
+ const [title, settitle] = useState('');
+ const [todos, settodos] = useState<ITodo[] | null>(null);
+
+ const AddTodo = () => {
+    if(!title) return;
+    const id = todos ? todos.length + 1 : 1;
+    
+    
+    const formBody:ITodo = {
+        id : id,
+        title : title,
+        isCompleted : false,
+        timeCompleted : Date.now()
+    }
+    settodos(todos ? [...todos, formBody] : [formBody]);
+    console.log(formBody);
+    settitle('');
+ 
+        }
+    
+  return{
+    title,
+    settitle,
+    todos,
+    settodos,
+    AddTodo
+  }
+}
+
+export default useHooks
