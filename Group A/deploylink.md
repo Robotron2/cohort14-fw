@@ -1,1 +1,0 @@
-Deployment Link: https://school-management-ui-nu.vercel.app
