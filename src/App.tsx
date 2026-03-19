@@ -1,8 +1,9 @@
 import { BrowserRouter, Route, Routes, Outlet, Navigate } from 'react-router-dom'
 import { useAccount } from 'wagmi'
+import { useWeb3Auth } from '@web3auth/modal/react'
 import PortalNav from './components/PortalNav'
 import Overview from './pages/overview'
-import FacultyPortal from './pages/falcutyportal'
+import FacultyPortal from './pages/FalcutyPortal'
 import ClaimPortal from './pages/claimportal'
 import StudentRegistry from './pages/studentRegistry'
 import LandingPage from './pages/LandingPage'
@@ -21,10 +22,27 @@ function PortalLayout() {
 	)
 }
 
-// Redirect to landing if wallet not connected
+// Redirect to landing if neither wallet nor Web3Auth is connected
 function ProtectedRoute() {
 	const { isConnected } = useAccount()
-	if (!isConnected) return <Navigate to="/home" replace />
+	const { isConnected: isWeb3AuthConnected, isInitializing } = useWeb3Auth()
+	
+	// Wait for Web3Auth to finish initializing before checking
+	if (isInitializing) {
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<div className="text-center">
+					<div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1457d2] border-t-transparent mx-auto mb-4" />
+					<p className="text-gray-600">Loading...</p>
+				</div>
+			</div>
+		)
+	}
+	
+	if (!isConnected && !isWeb3AuthConnected) {
+		return <Navigate to="/home" replace />
+	}
+	
 	return <PortalLayout />
 }
 
