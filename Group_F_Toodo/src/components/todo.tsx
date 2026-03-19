@@ -1,4 +1,4 @@
-import { useTodo } from "../hooks/useHooks";
+import useHooks, { useTodo } from "../hooks/useHooks";
 export interface ITodo {
     id : number;
     title : string;
@@ -18,7 +18,13 @@ export interface ITodo {
 
 export default function TodoList() {
   const { tasks, markComplete, deleteTodo } = useTodo();
+  const {title,
+    settitle,
+    todos,
+    settodos,
+    AddTodo} = useHooks();
 
+// useHooks();
 
   return (
     <div
@@ -36,16 +42,17 @@ export default function TodoList() {
         <div className="flex gap-3 mb-8">
           <input
             type="text"
-            value=""
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            settitle(e.target.value)} value={title}
           
             placeholder="Please Enter a New task"
             className="flex-1 rounded-lg px-4 py-3 text-slate-300 placeholder-slate-500 outline-none text-sm border border-slate-600 focus:border-yellow-400 transition-colors"
             style={{ backgroundColor: "transparent" }}
           />
           <button
-            type="button"
-         
-            className="bg-yellow-400/60 text-slate-900 font-bold px-6 py-3 rounded-lg uppercase tracking-widest text-sm cursor-not-allowed"
+            type="submit" onClick={(e) => { e.preventDefault(); AddTodo(); }}
+              style={{ cursor: "pointer" }}
+            className="bg-yellow-400/60 text-slate-900 font-bold px-6 py-3 rounded-lg uppercase tracking-widest text-sm"
            
           >
             Add
@@ -74,7 +81,7 @@ export default function TodoList() {
 
         {/* Task List */}
         <ul className="flex flex-col gap-2">
-          {tasks.map((task) => (
+          {todos?.map((task) => (
             <li
               key={task.id}
               className="flex items-center justify-between rounded-lg px-4 py-3 border border-slate-700/50 hover:border-slate-600 transition-colors"
@@ -85,17 +92,17 @@ export default function TodoList() {
                 <button
                   type="button"
                   onClick={() => void markComplete(task.id)}
-                  disabled={task.completed}
+                  disabled={task.isCompleted}
                   className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all duration-150 ${
-                    task.completed
+                    task.isCompleted
                       ? "bg-yellow-400 border-yellow-400 cursor-not-allowed"
                       : "bg-transparent border-slate-500 cursor-pointer"
                   }`}
                   aria-label={
-                    task.completed ? "Mark incomplete" : "Mark complete"
+                    task.isCompleted ? "Mark incomplete" : "Mark complete"
                   }
                 >
-                  {task.completed && (
+                  {task.isCompleted && (
                     <svg
                       className="w-3 h-3 text-slate-900"
                       fill="none"
@@ -112,20 +119,20 @@ export default function TodoList() {
                   )}
                 </button>
 
-                {/* Task Text + Completed Time */}
+                {/* Task Text + isCompleted Time */}
                 <div className="flex flex-col min-w-0">
                   <span
                     className={`text-sm transition-all duration-150 truncate ${
-                      task.completed
+                      task.isCompleted
                         ? "line-through text-slate-500"
                         : "text-slate-200"
                     }`}
                   >
-                    {task.text}
+                    {task.title}
                   </span>
 
-                  {/* Completed At Time */}
-                  {task.completed && task.completedAt && (
+                  {/* isCompleted At Time */}
+                  {task.isCompleted && task.timeCompleted&& (
                     <span className="text-xs text-yellow-400/70 mt-0.5 flex items-center gap-1">
                       <svg
                         className="w-3 h-3"
@@ -140,7 +147,7 @@ export default function TodoList() {
                           d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
                         />
                       </svg>
-                      Completed at {task.completedAt}
+                      Completed at {task.timeCompleted}
                     </span>
                   )}
                 </div>

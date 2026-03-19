@@ -140,10 +140,12 @@ const useHooks = () => {
         id : id,
         title : title,
         isCompleted : false,
-        timeCompleted : Date.now()
+        timeCompleted : 0
     }
-    settodos(todos ? [...todos, formBody] : [formBody]);
-    console.log(formBody);
+    
+    const updatedTodos = todos ? [...todos, formBody] : [formBody];
+    settodos(updatedTodos);
+    console.log(updatedTodos);
     settitle('');
  
         }
