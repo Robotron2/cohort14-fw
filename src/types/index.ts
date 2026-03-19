@@ -9,23 +9,39 @@ export interface Property {
   warranty: string;
 }
 
+// Stored off-chain in localStorage keyed by propertyId
+export interface PropertyImages {
+  propertyId: number;
+  coverIndex: number; // which image is the main card image
+  images: PropertyImageEntry[];
+}
+
+export interface PropertyImageEntry {
+  id: string;
+  dataUrl: string; // base64 preview / objectURL
+  file?: File;
+  name: string;
+}
+
 export interface PropertyFormData {
   amount: string;
   propType: string;
   category: string;
   warranty: string;
+  images: PropertyImageEntry[];
+  coverIndex: number;
 }
 
 export type ModalType =
-  | 'createProperty'
-  | 'buyProperty'
-  | 'listProperty'
-  | 'unlistProperty'
-  | 'deleteProperty'
-  | 'approveToken'
+  | "createProperty"
+  | "buyProperty"
+  | "listProperty"
+  | "unlistProperty"
+  | "deleteProperty"
+  | "approveToken"
   | null;
 
-export type ToastType = 'success' | 'error' | 'info' | 'warning';
+export type ToastType = "success" | "error" | "info" | "warning";
 
 export interface Toast {
   id: string;
@@ -33,6 +49,8 @@ export interface Toast {
   title: string;
   message?: string;
 }
+
+export type ViewMode = "grid" | "list";
 
 export interface AppContextType {
   isConnected: boolean;
@@ -51,7 +69,7 @@ export interface AppContextType {
   closeModal: () => void;
 
   toasts: Toast[];
-  addToast: (toast: Omit<Toast, 'id'>) => void;
+  addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
 
   filterType: string;
@@ -60,6 +78,17 @@ export interface AppContextType {
   setFilterType: (v: string) => void;
   setFilterCategory: (v: string) => void;
   setFilterPrice: (v: string) => void;
+
+  // Image store (off-chain, localStorage)
+  propertyImages: Record<number, PropertyImages>;
+  savePropertyImages: (id: number, data: PropertyImages) => void;
+  getPropertyImageData: (id: number) => PropertyImages | null;
+
+  // View mode
+  marketplaceView: ViewMode;
+  setMarketplaceView: (v: ViewMode) => void;
+  dashboardView: ViewMode;
+  setDashboardView: (v: ViewMode) => void;
 
   refreshProperties: () => void;
 }

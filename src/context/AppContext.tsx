@@ -3,14 +3,22 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
-import type { AppContextType, ModalType, Property, Toast } from "../types";
+import type {
+  AppContextType,
+  ModalType,
+  Property,
+  PropertyImages,
+  Toast,
+  ViewMode,
+} from "../types";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Mock property images mapped by id for display
-export const PROPERTY_IMAGES: Record<
+// ── Fallback image pool ──────────────────────────────────────────────────────
+export const FALLBACK_IMAGES: Record<
   number,
   { url: string; location: string; apy: string }
 > = {
@@ -45,25 +53,33 @@ export const PROPERTY_IMAGES: Record<
     apy: "11.2%",
   },
 };
-
-export const DEFAULT_IMAGE = {
+export const DEFAULT_FALLBACK = {
   url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
   location: "Global Asset",
   apy: "8.0%",
 };
 
-export function getPropertyImage(id: number) {
-  return PROPERTY_IMAGES[((id - 1) % 6) + 1] || DEFAULT_IMAGE;
+/** Returns the cover URL for a property — user-uploaded if available, else fallback */
+export function getPropertyImage(
+  id: number,
+  userImages?: Record<number, PropertyImages>
+) {
+  const stored = userImages?.[id];
+  if (stored && stored.images.length > 0) {
+    const cover = stored.images[stored.coverIndex] ?? stored.images[0];
+    return { url: cover.dataUrl, location: "Your Asset", apy: "—" };
+  }
+  return FALLBACK_IMAGES[((id - 1) % 6) + 1] || DEFAULT_FALLBACK;
 }
 
-// Mock properties for UI preview
+// ── Mock data ────────────────────────────────────────────────────────────────
 const MOCK_PROPERTIES: Property[] = [
   {
     id: 1,
     price: BigInt("125000000000000000000000"),
     propType: "Villa",
     category: "Beachfront",
-    owner: "0x71C...a49B",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
     isSold: false,
     isListed: true,
     warranty: "10 years structural warranty",
@@ -73,7 +89,7 @@ const MOCK_PROPERTIES: Property[] = [
     price: BigInt("840000000000000000000000"),
     propType: "Commercial",
     category: "Metropolitan",
-    owner: "0x71C...a49B",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
     isSold: false,
     isListed: true,
     warranty: "5 years commercial warranty",
@@ -83,7 +99,7 @@ const MOCK_PROPERTIES: Property[] = [
     price: BigInt("45000000000000000000000"),
     propType: "Apartment",
     category: "Metropolitan",
-    owner: "0x71C...a49B",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
     isSold: false,
     isListed: true,
     warranty: "7 years smart warranty",
@@ -93,7 +109,7 @@ const MOCK_PROPERTIES: Property[] = [
     price: BigInt("310000000000000000000000"),
     propType: "Villa",
     category: "Luxury Retreat",
-    owner: "0x71C...a49B",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
     isSold: false,
     isListed: true,
     warranty: "15 years premium warranty",
@@ -103,7 +119,7 @@ const MOCK_PROPERTIES: Property[] = [
     price: BigInt("640000000000000000000000"),
     propType: "Villa",
     category: "Beachfront",
-    owner: "0x71C...a49B",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
     isSold: false,
     isListed: true,
     warranty: "10 years ocean warranty",
@@ -113,66 +129,127 @@ const MOCK_PROPERTIES: Property[] = [
     price: BigInt("1200000000000000000000000"),
     propType: "Commercial",
     category: "Metropolitan",
-    owner: "0x71C...a49B",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
     isSold: true,
     isListed: false,
     warranty: "8 years corporate warranty",
   },
+  {
+    id: 7,
+    price: BigInt("220000000000000000000000"),
+    propType: "Apartment",
+    category: "Metropolitan",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
+    isSold: false,
+    isListed: true,
+    warranty: "6 years warranty",
+  },
+  {
+    id: 8,
+    price: BigInt("980000000000000000000000"),
+    propType: "Hospitality",
+    category: "Luxury Retreat",
+    owner: "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B",
+    isSold: false,
+    isListed: false,
+    warranty: "12 years warranty",
+  },
 ];
 
-interface AppProviderProps {
-  children: ReactNode;
+// ── LocalStorage key ─────────────────────────────────────────────────────────
+const LS_KEY = "ocean_property_images";
+
+function loadStoredImages(): Record<number, PropertyImages> {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
 }
 
-export function AppProvider({ children }: AppProviderProps) {
-  // Wallet state (placeholder - wagmi will provide real values)
-  const [isConnected] = useState(false);
-  const [address] = useState<string | undefined>(undefined);
-  const [isOwner] = useState(false);
+function saveStoredImages(data: Record<number, PropertyImages>) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch {}
+}
 
-  // Properties state
+// ── Provider ─────────────────────────────────────────────────────────────────
+export function AppProvider({ children }: { children: ReactNode }) {
+  // Wallet (wagmi wires into here)
+  const [isConnected, setIsConnected] = useState(false);
+  const [address, setAddress] = useState<string | undefined>(undefined);
+  const [isOwner, setIsOwner] = useState(false);
+
+  // --- DEMO toggle so you can test connected/disconnected state in UI ---
+  // Remove this block and replace with real wagmi hooks when integrating
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === "w") {
+        setIsConnected((v) => {
+          const next = !v;
+          setAddress(
+            next ? "0x71Cf5A6E5B0B2F97f0b4CDb38Ced48A49B61a49B" : undefined
+          );
+          setIsOwner(next);
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const [properties, setProperties] = useState<Property[]>(MOCK_PROPERTIES);
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
-
-  // Selected property
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(
     null
   );
-
-  // Modal state
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-
-  // Toast state
   const [toasts, setToasts] = useState<Toast[]>([]);
-
-  // Filter state
   const [filterType, setFilterType] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPrice, setFilterPrice] = useState("");
+  const [propertyImages, setPropertyImages] =
+    useState<Record<number, PropertyImages>>(loadStoredImages);
+  const [marketplaceView, setMarketplaceView] = useState<ViewMode>("grid");
+  const [dashboardView, setDashboardView] = useState<ViewMode>("grid");
 
   const listedProperties = properties.filter((p) => p.isListed && !p.isSold);
 
-  const openModal = useCallback(
-    (modal: ModalType) => setActiveModal(modal),
-    []
-  );
+  const openModal = useCallback((m: ModalType) => setActiveModal(m), []);
   const closeModal = useCallback(() => setActiveModal(null), []);
 
   const addToast = useCallback((toast: Omit<Toast, "id">) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = Math.random().toString(36).slice(2, 9);
     setToasts((prev) => [...prev, { ...toast, id }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
+    setTimeout(
+      () => setToasts((prev) => prev.filter((t) => t.id !== id)),
+      5000
+    );
   }, []);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const savePropertyImages = useCallback((id: number, data: PropertyImages) => {
+    setPropertyImages((prev) => {
+      const next = { ...prev, [id]: data };
+      saveStoredImages(next);
+      return next;
+    });
+  }, []);
+
+  const getPropertyImageData = useCallback(
+    (id: number): PropertyImages | null => {
+      return propertyImages[id] ?? null;
+    },
+    [propertyImages]
+  );
+
   const refreshProperties = useCallback(() => {
     setIsLoadingProperties(true);
-    // When integrated, fetch from contract here
     setTimeout(() => setIsLoadingProperties(false), 800);
   }, []);
 
@@ -197,6 +274,13 @@ export function AppProvider({ children }: AppProviderProps) {
     setFilterType,
     setFilterCategory,
     setFilterPrice,
+    propertyImages,
+    savePropertyImages,
+    getPropertyImageData,
+    marketplaceView,
+    setMarketplaceView,
+    dashboardView,
+    setDashboardView,
     refreshProperties,
   };
 
@@ -204,7 +288,7 @@ export function AppProvider({ children }: AppProviderProps) {
 }
 
 export function useApp(): AppContextType {
-  const context = useContext(AppContext);
-  if (!context) throw new Error("useApp must be used within AppProvider");
-  return context;
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error("useApp must be used within AppProvider");
+  return ctx;
 }
