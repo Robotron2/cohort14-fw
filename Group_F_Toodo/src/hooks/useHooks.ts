@@ -3,6 +3,7 @@ import type { Task } from "../components/Todo";
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import TodoABI from "../contract/Todo.json";
+import type { ITodo } from "../components/Todo";
 
 export const useHandleTodoUpdate = () =>{
     const [inputValue, setInputValue] = useState("");
@@ -158,3 +159,42 @@ export const useTodo = () => {
     deleteTodo,
   };
 };
+
+
+
+
+
+
+const useHooks = () => {
+ const [title, settitle] = useState('');
+ const [todos, settodos] = useState<ITodo[] | null>(null);
+
+ const AddTodo = () => {
+    if(!title) return;
+    const id = todos ? todos.length + 1 : 1;
+    
+    
+    const formBody:ITodo = {
+        id : id,
+        title : title,
+        isCompleted : false,
+        timeCompleted : 0
+    }
+    
+    const updatedTodos = todos ? [...todos, formBody] : [formBody];
+    settodos(updatedTodos);
+    console.log(updatedTodos);
+    settitle('');
+ 
+        }
+    
+  return{
+    title,
+    settitle,
+    todos,
+    settodos,
+    AddTodo
+  }
+}
+
+export default useHooks
