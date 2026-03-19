@@ -1,121 +1,93 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { BrowserRouter, Route, Routes, Outlet, Navigate } from 'react-router-dom'
+import { useAccount } from 'wagmi'
+import { useWeb3Auth } from '@web3auth/modal/react'
+import PortalNav from './components/PortalNav'
+import Overview from './pages/overview'
+import FacultyPortal from './pages/FalcutyPortal'
+import ClaimPortal from './pages/claimportal'
+import StudentRegistry from './pages/studentRegistry'
+import LandingPage from './pages/LandingPage'
+import AcademicLedger from './pages/academyledger'
 
+// Legal pages
+import TermsOfService from './pages/legal/TermsOfService'
+import PrivacyPolicy from './pages/legal/PrivacyPolicy'
+import TokenPolicy from './pages/legal/TokenPolicy'
+
+// Support pages
+import KnowledgeBase from './pages/support/KnowledgeBase'
+import Documentation from './pages/support/Documentation'
+import SmartContracts from './pages/support/SmartContracts'
+import APIReference from './pages/support/APIReference'
+
+function PortalLayout() {
+	return (
+		<div className="min-h-screen bg-[#eceff3] text-[#5d6470]">
+			<div className="mx-auto flex w-full max-w-[1280px] lg:min-h-screen">
+				<PortalNav />
+				<div className="flex-1">
+					<Outlet />
+				</div>
+			</div>
+		</div>
+	)
+}
+
+// Redirect to landing if neither wallet nor Web3Auth is connected
+function ProtectedRoute() {
+	const { isConnected } = useAccount()
+	const { isConnected: isWeb3AuthConnected, isInitializing } = useWeb3Auth()
+	
+	// Wait for Web3Auth to finish initializing before checking
+	if (isInitializing) {
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<div className="text-center">
+					<div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1457d2] border-t-transparent mx-auto mb-4" />
+					<p className="text-gray-600">Loading...</p>
+				</div>
+			</div>
+		)
+	}
+	
+	if (!isConnected && !isWeb3AuthConnected) {
+		return <Navigate to="/home" replace />
+	}
+	
+	return <PortalLayout />
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+	return (
+		<BrowserRouter>
+			<Routes>
+				{/* Landing page — public, no sidebar */}
+				<Route index element={<LandingPage />} />
+				<Route path="home" element={<LandingPage />} />
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+				{/* Legal pages — public */}
+				<Route path="terms" element={<TermsOfService />} />
+				<Route path="privacy" element={<PrivacyPolicy />} />
+				<Route path="token-policy" element={<TokenPolicy />} />
 
-      <div className="ticks"></div>
+				{/* Support pages — public */}
+				<Route path="knowledge-base" element={<KnowledgeBase />} />
+				<Route path="documentation" element={<Documentation />} />
+				<Route path="smart-contracts" element={<SmartContracts />} />
+				<Route path="api-reference" element={<APIReference />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+				{/* Dashboard routes — protected, requires wallet */}
+				<Route element={<ProtectedRoute />}>
+					<Route path="overview" element={<Overview />} />
+					<Route path="ledger" element={<AcademicLedger />} />
+					<Route path="faculty" element={<FacultyPortal />} />
+					<Route path="claims" element={<ClaimPortal />} />
+					<Route path="students" element={<StudentRegistry />} />
+				</Route>
+			</Routes>
+		</BrowserRouter>
+	)
 }
 
 export default App
+
